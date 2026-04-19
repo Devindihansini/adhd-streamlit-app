@@ -5,7 +5,7 @@ import numpy as np
 import pickle
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import confusion_matrix, classification_report
 
 # Page configuration
 st.set_page_config(page_title="ADHD Assessment Tool", layout="wide")
