@@ -128,6 +128,14 @@ def preprocess_data(df):
             df_clean['Age'] = encoders['age_encoder'].transform(df_clean['Age'].astype(str))
         except:
             pass
+
+    # Encode target labels if available so performance metrics use consistent numeric labels
+    if target_column in df_clean.columns and encoders and 'target_encoder' in encoders:
+        try:
+            if df_clean[target_column].dtype == object:
+                df_clean[target_column] = encoders['target_encoder'].transform(df_clean[target_column].astype(str))
+        except Exception:
+            pass
     
     return df_clean
 
@@ -475,8 +483,16 @@ elif page == "📋 Model Performance":
         if target_column in df_clean.columns:
             X = df_clean.drop(columns=[target_column], errors='ignore')
             y = df_clean[target_column]
+            y_true = y
             
-            if len(X) == 0 or len(y) == 0:
+            # Normalize target labels to numeric codes if original values are strings
+            if y_true.dtype == object:
+                try:
+                    y_true = encoders['target_encoder'].transform(y_true.astype(str))
+                except Exception:
+                    pass
+            
+            if len(X) == 0 or len(y_true) == 0:
                 st.warning("No data available for performance analysis")
             else:
                 # Make predictions
@@ -488,7 +504,7 @@ elif page == "📋 Model Performance":
                     st.subheader("Classification Report")
                     try:
                         report = classification_report(
-                            y, 
+                            y_true, 
                             y_pred, 
                             target_names=list(encoders['target_encoder'].classes_), 
                             output_dict=True
@@ -502,7 +518,7 @@ elif page == "📋 Model Performance":
                 with tab2:
                     st.subheader("Confusion Matrix")
                     try:
-                        cm = confusion_matrix(y, y_pred)
+                        cm = confusion_matrix(y_true, y_pred)
                         fig, ax = plt.subplots(figsize=(8, 6))
                         sns.heatmap(
                             cm, 
