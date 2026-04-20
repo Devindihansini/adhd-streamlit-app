@@ -56,7 +56,6 @@ pip-delete-this-directory.txt
 *.db
 *.sqlite
 *.pickle
-*.pkl
 
 # OS
 .DS_Store
