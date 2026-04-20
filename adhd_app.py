@@ -505,6 +505,13 @@ elif page == "📋 Model Performance":
                 # Make predictions
                 y_pred = model.predict(X)
                 
+                # Ensure both y_true and y_pred are in the same format (strings)
+                y_pred = np.array([str(x) for x in y_pred])
+                if hasattr(y_true, 'values'):
+                    y_true = np.array([str(x) for x in y_true.values])
+                else:
+                    y_true = np.array([str(x) for x in y_true])
+                
                 tab1, tab2 = st.tabs(["Classification Report", "Confusion Matrix"])
                 
                 with tab1:
