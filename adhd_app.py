@@ -3,9 +3,13 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import pickle
+import os
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import confusion_matrix, classification_report
+
+# Get the directory of the current script
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # Page configuration
 st.set_page_config(page_title="ADHD Assessment Tool", layout="wide")
@@ -21,7 +25,8 @@ page = st.sidebar.radio(
 @st.cache_data
 def load_data():
     try:
-        df = pd.read_excel('ADHD Symptom Self-Assessment (Responses).xlsx')
+        data_path = os.path.join(SCRIPT_DIR, 'ADHD Symptom Self-Assessment (Responses).xlsx')
+        df = pd.read_excel(data_path)
         
         # STRONGLY convert ALL columns to Arrow-compatible types
         for col in df.columns:
@@ -53,9 +58,11 @@ df = load_data()
 @st.cache_resource
 def load_model():
     try:  # added ----
-        with open('adhd_model.pkl', 'rb') as f:
+        model_path = os.path.join(SCRIPT_DIR, 'adhd_model.pkl')
+        encoders_path = os.path.join(SCRIPT_DIR, 'encoders.pkl')
+        with open(model_path, 'rb') as f:
             model = pickle.load(f)
-        with open('encoders.pkl', 'rb') as f:
+        with open(encoders_path, 'rb') as f:
             encoders = pickle.load(f)
         return model, encoders
     except Exception as e:  # added ----
