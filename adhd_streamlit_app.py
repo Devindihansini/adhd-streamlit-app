@@ -698,10 +698,12 @@ elif page == "📋 Model Performance":
                 with tab1:
                     st.subheader("Classification Report")
                     try:
+                        # Get unique labels from actual predictions and true values
+                        unique_labels = sorted(set(list(y) + list(y_pred)))
                         report = classification_report(
                             y, 
                             y_pred, 
-                            target_names=list(encoders['target_encoder'].classes_), 
+                            labels=unique_labels,
                             output_dict=True
                         )
                         report_df = pd.DataFrame(report).transpose()
@@ -713,15 +715,17 @@ elif page == "📋 Model Performance":
                 with tab2:
                     st.subheader("Confusion Matrix")
                     try:
-                        cm = confusion_matrix(y, y_pred)
+                        # Get unique labels from actual predictions and true values
+                        unique_labels = sorted(set(list(y) + list(y_pred)))
+                        cm = confusion_matrix(y, y_pred, labels=unique_labels)
                         fig, ax = plt.subplots(figsize=(8, 6))
                         sns.heatmap(
                             cm, 
                             annot=True, 
                             fmt='d', 
                             cmap='Blues',
-                            xticklabels=encoders['target_encoder'].classes_,
-                            yticklabels=encoders['target_encoder'].classes_,
+                            xticklabels=unique_labels,
+                            yticklabels=unique_labels,
                             ax=ax
                         )
                         ax.set_xlabel('Predicted')
