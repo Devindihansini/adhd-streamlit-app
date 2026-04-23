@@ -377,46 +377,72 @@ elif page == "🔮 ADHD Level Prediction":
         st.write("Please answer the following questions:")
         
         with st.form("prediction_form"):
+            # Get response options
+            response_options = ["Never", "Rarely", "Sometimes", "Often", "Always"]
+            
+            # Get Gender and Age options
+            if 'gender_encoder' in encoders:
+                gender_options = list(encoders['gender_encoder'].classes_)
+            else:
+                gender_options = ['Male', 'Female', 'Other']
+            
+            if 'age_encoder' in encoders:
+                age_options = list(encoders['age_encoder'].classes_)
+            else:
+                age_options = ['Under 18', '18-25', '26-35', '36-45', '46+']
+            
+            # Demographics section
+            st.subheader("📋 Demographics")
             col1, col2 = st.columns(2)
             
             with col1:
-                # Get options from encoders
-                if 'gender_encoder' in encoders:
-                    gender_options = list(encoders['gender_encoder'].classes_)
-                else:
-                    gender_options = ['Male', 'Female', 'Other']
-                
-                if 'age_encoder' in encoders:
-                    age_options = list(encoders['age_encoder'].classes_)
-                else:
-                    age_options = ['Under 18', '18-25', '26-35', '36-45', '46+']
-                
                 gender = st.selectbox("Gender", gender_options)
-                age = st.selectbox("Age Group", age_options)
             
             with col2:
-                # Use the actual question columns from encoders for sample questions
-                response_options = ["Never", "Rarely", "Sometimes", "Often", "Always"]
-                
-                # Get actual question columns
-                question_columns = encoders.get('question_columns', [])
-                
-                if len(question_columns) >= 2:
-                    # Use first two questions
-                    q1_text = question_columns[0][:50] + "..." if len(question_columns[0]) > 50 else question_columns[0]
-                    q2_text = question_columns[1][:50] + "..." if len(question_columns[1]) > 50 else question_columns[1]
-                    
-                    q1 = st.selectbox(q1_text, response_options)
-                    q2 = st.selectbox(q2_text, response_options)
-                else:
-                    # Default questions if no question columns
-                    q1 = st.selectbox("Do you avoid starting difficult tasks?", response_options)
-                    q2 = st.selectbox("Do you do other things when you need to focus?", response_options)
+                age = st.selectbox("Age Group", age_options)
             
-            submit = st.form_submit_button("Predict")
+            # Get actual question columns from encoders
+            question_columns = encoders.get('question_columns', [])
+            
+            # Questions section
+            st.subheader("❓ ADHD Assessment Questions")
+            st.write(f"Please answer all {len(question_columns)} questions below:")
+            
+            # Create a dictionary to store all answers
+            answers = {}
+            
+            # Display questions in 2 columns
+            cols = st.columns(2)
+            col_idx = 0
+            
+            if question_columns:
+                for idx, q_col in enumerate(question_columns):
+                    with cols[col_idx % 2]:
+                        # Clean question text for display
+                        q_display = q_col.strip() if isinstance(q_col, str) else str(q_col)
+                        
+                        # Question number
+                        st.markdown(f"**Q{idx + 1}.** {q_display}")
+                        
+                        # Response selectbox
+                        response = st.selectbox(
+                            f"Answer for Q{idx + 1}",
+                            response_options,
+                            key=f"q_{idx}",
+                            label_visibility="collapsed"
+                        )
+                        answers[q_col] = response
+                    
+                    col_idx += 1
+            else:
+                st.warning("No questions found in model encoders!")
+            
+            # Submit button
+            st.markdown("---")
+            submit = st.form_submit_button("🔮 Predict ADHD Level", use_container_width=True)
         
         if submit:
-            with st.spinner("Predicting..."):
+            with st.spinner("Analyzing your responses..."):
                 try:
                     # Prepare input data
                     input_data = {
@@ -424,31 +450,26 @@ elif page == "🔮 ADHD Level Prediction":
                         'Age': encoders['age_encoder'].transform([age])[0]
                     }
                     
-                    # Get question columns from encoders
-                    question_columns = encoders.get('question_columns', [])
-                    
-                    # Map the two answered questions
-                    if len(question_columns) >= 1:
-                        input_data[question_columns[0]] = encoders['response_mapping'][q1]
-                    if len(question_columns) >= 2:
-                        input_data[question_columns[1]] = encoders['response_mapping'][q2]
-                    
-                    # Fill remaining questions with default value (Sometimes = 2)
-                    for q_col in question_columns[2:]:
-                        input_data[q_col] = 2  # 'Sometimes' as default
+                    # Add all question responses
+                    if question_columns and answers:
+                        for q_col in question_columns:
+                            if q_col in answers:
+                                # Get the response value from mapping
+                                response = answers[q_col]
+                                input_data[q_col] = encoders['response_mapping'][response]
                     
                     # Create feature array in correct order
                     feature_columns = ['Gender', 'Age'] + question_columns
                     
-                    # Create DataFrame ensuring all columns exist
+                    # Create DataFrame
                     input_df = pd.DataFrame([input_data])
                     
-                    # Make sure all feature columns exist in input_df
+                    # Ensure all feature columns exist
                     for col in feature_columns:
                         if col not in input_df.columns:
-                            input_df[col] = 2  # Default value
+                            input_df[col] = 2  # Default 'Sometimes'
                     
-                    # Reorder columns to match training data
+                    # Reorder columns
                     input_df = input_df[feature_columns]
                     
                     # Make prediction
@@ -456,28 +477,36 @@ elif page == "🔮 ADHD Level Prediction":
                     prediction_label = encoders['target_encoder'].inverse_transform(prediction)[0]
                     
                     # Show results
-                    st.success("✅ Prediction complete!")
+                    st.success("✅ Prediction Complete!")
                     
-                    col1, col2, col3 = st.columns(3)
+                    # Display results in metrics
+                    res_col1, res_col2, res_col3 = st.columns(3)
                     
-                    with col1:
+                    with res_col1:
                         st.metric("Gender", gender)
-                    with col2:
+                    with res_col2:
                         st.metric("Age Group", age)
-                    with col3:
-                        st.metric("Predicted ADHD Level", prediction_label)
+                    with res_col3:
+                        st.metric("Predicted ADHD Level", prediction_label, delta=None)
                     
-                    # Details
+                    # Detailed results
+                    st.markdown("---")
+                    st.subheader("📊 Assessment Results")
                     st.info(f"""
-                    **Details:** {prediction_label}
+                    **Your Predicted ADHD Level:** {prediction_label}
                     
-                    **Note:** This is only an AI-based prediction.
-                    For scientific diagnosis, consult with a doctor.
+                    **Details:** Based on your answers to all {len(question_columns)} assessment questions, 
+                    the AI model predicts your ADHD level to be **{prediction_label}**.
+                    
+                    ⚠️ **Important Note:** This is only an AI-based prediction and should not be considered a medical diagnosis. 
+                    For a scientific and professional diagnosis, please consult with a qualified healthcare provider or doctor.
                     """)
                     
                 except Exception as e:
-                    st.error(f"Prediction error: {str(e)}")
-                    st.info("Try answering all questions and make sure the model files are properly trained.")
+                    st.error(f"❌ Prediction error: {str(e)}")
+                    st.info("Please make sure you have answered all questions and that the model files are properly trained.")
+                    import traceback
+                    st.write(traceback.format_exc())
 
 # Page 5: Model Performance
 elif page == "📋 Model Performance":
