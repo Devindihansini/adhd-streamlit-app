@@ -374,7 +374,7 @@ elif page == "🔮 ADHD Level Prediction":
         st.error("Model not loaded. Please check if model files exist.")
         st.info("Required files: 'adhd_model.pkl' and 'encoders.pkl'")
     else:
-        st.write("Please answer the following questions:")
+        st.markdown("<p style='font-size:18px; margin-bottom: 12px;'>Please answer the following questions:</p>", unsafe_allow_html=True)
         
         with st.form("prediction_form"):
             # Get response options
@@ -422,7 +422,10 @@ elif page == "🔮 ADHD Level Prediction":
                         q_display = q_col.strip() if isinstance(q_col, str) else str(q_col)
                         
                         # Question number
-                        st.markdown(f"**Q{idx + 1}.** {q_display}")
+                        st.markdown(
+                            f"<div style='font-size:18px; font-weight:600; margin-bottom: 4px;'>Q{idx + 1}. {q_display}</div>",
+                            unsafe_allow_html=True
+                        )
                         
                         # Response selectbox
                         response = st.selectbox(
@@ -476,24 +479,48 @@ elif page == "🔮 ADHD Level Prediction":
                     prediction = model.predict(input_df)
                     prediction_label = encoders['target_encoder'].inverse_transform(prediction)[0]
                     
+                    # Compute separate AD and HD scores from the answered questions
+                    split_index = 16 if len(question_columns) >= 16 else len(question_columns) // 2
+                    ad_questions = question_columns[:split_index]
+                    hd_questions = question_columns[split_index:]
+                    
+                    ad_score = sum(
+                        encoders['response_mapping'][answers[q]]
+                        for q in ad_questions
+                        if q in answers
+                    )
+                    hd_score = sum(
+                        encoders['response_mapping'][answers[q]]
+                        for q in hd_questions
+                        if q in answers
+                    )
+                    total_score = ad_score + hd_score
+                    
                     # Show results
                     st.success("✅ Prediction Complete!")
                     
                     # Display results in metrics
-                    res_col1, res_col2, res_col3 = st.columns(3)
+                    score_col1, score_col2, score_col3, score_col4, score_col5 = st.columns(5)
                     
-                    with res_col1:
+                    with score_col1:
                         st.metric("Gender", gender)
-                    with res_col2:
+                    with score_col2:
                         st.metric("Age Group", age)
-                    with res_col3:
-                        st.metric("Predicted ADHD Level", prediction_label, delta=None)
+                    with score_col3:
+                        st.metric("Predicted ADHD Level", prediction_label)
+                    with score_col4:
+                        st.metric("Total ADHD Score", total_score)
+                    with score_col5:
+                        st.metric("HD Score", hd_score)
                     
-                    # Detailed results
                     st.markdown("---")
                     st.subheader("📊 Assessment Results")
                     st.info(f"""
                     **Your Predicted ADHD Level:** {prediction_label}
+                    
+                    **Total ADHD Score:** {total_score}
+                    **Attention Deficit (AD) Score:** {ad_score}
+                    **Hyperactivity/Impulsivity (HD) Score:** {hd_score}
                     
                     **Details:** Based on your answers to all {len(question_columns)} assessment questions, 
                     the AI model predicts your ADHD level to be **{prediction_label}**.
