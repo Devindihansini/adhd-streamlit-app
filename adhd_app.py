@@ -479,22 +479,15 @@ elif page == "🔮 ADHD Level Prediction":
                     prediction = model.predict(input_df)
                     prediction_label = encoders['target_encoder'].inverse_transform(prediction)[0]
                     
-                    # Compute separate AD and HD scores from the answered questions
+                    # Compute separate AD and HD scores from the encoded input values
                     split_index = 16 if len(question_columns) >= 16 else len(question_columns) // 2
                     ad_questions = question_columns[:split_index]
                     hd_questions = question_columns[split_index:]
                     
-                    ad_score = sum(
-                        encoders['response_mapping'][answers[q]]
-                        for q in ad_questions
-                        if q in answers
-                    )
-                    hd_score = sum(
-                        encoders['response_mapping'][answers[q]]
-                        for q in hd_questions
-                        if q in answers
-                    )
-                    total_score = ad_score + hd_score
+                    # Use the encoded numeric values from input_df for score totals
+                    ad_score = int(input_df[ad_questions].iloc[0].sum()) if ad_questions else 0
+                    hd_score = int(input_df[hd_questions].iloc[0].sum()) if hd_questions else 0
+                    total_score = int(input_df[question_columns].iloc[0].sum()) if question_columns else 0
                     
                     # Show results
                     st.success("✅ Prediction Complete!")
