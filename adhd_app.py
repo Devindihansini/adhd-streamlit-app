@@ -479,21 +479,20 @@ elif page == "🔮 ADHD Level Prediction":
                     prediction = model.predict(input_df)
                     prediction_label = encoders['target_encoder'].inverse_transform(prediction)[0]
                     
-                    # Compute separate AD and HD scores from the encoded input values
+                    # Compute separate AD and HD scores from the encoded answer values
                     split_index = 16 if len(question_columns) >= 16 else len(question_columns) // 2
                     ad_questions = question_columns[:split_index]
                     hd_questions = question_columns[split_index:]
                     
-                    # Use the encoded numeric values from input_df for score totals
-                    ad_score = int(input_df[ad_questions].iloc[0].sum()) if ad_questions else 0
-                    hd_score = int(input_df[hd_questions].iloc[0].sum()) if hd_questions else 0
-                    total_score = int(input_df[question_columns].iloc[0].sum()) if question_columns else 0
+                    ad_score = sum(int(input_data[q]) for q in ad_questions if q in input_data)
+                    hd_score = sum(int(input_data[q]) for q in hd_questions if q in input_data)
+                    total_score = ad_score + hd_score
                     
                     # Show results
                     st.success("✅ Prediction Complete!")
                     
                     # Display results in metrics
-                    score_col1, score_col2, score_col3, score_col4, score_col5 = st.columns(5)
+                    score_col1, score_col2, score_col3, score_col4, score_col5, score_col6 = st.columns(6)
                     
                     with score_col1:
                         st.metric("Gender", gender)
@@ -504,6 +503,8 @@ elif page == "🔮 ADHD Level Prediction":
                     with score_col4:
                         st.metric("Total ADHD Score", total_score)
                     with score_col5:
+                        st.metric("AD Score", ad_score)
+                    with score_col6:
                         st.metric("HD Score", hd_score)
                     
                     st.markdown("---")
