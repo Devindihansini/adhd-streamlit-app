@@ -427,14 +427,15 @@ elif page == "🔮 ADHD Level Prediction":
                             unsafe_allow_html=True
                         )
                         
-                        # Response selectbox
+                        # Response selectbox with default 'Sometimes'
                         response = st.selectbox(
                             f"Answer for Q{idx + 1}",
                             response_options,
+                            index=2,
                             key=f"q_{idx}",
                             label_visibility="collapsed"
                         )
-                        answers[q_col] = response
+                        answers[idx] = response
                     
                     col_idx += 1
             else:
@@ -454,12 +455,10 @@ elif page == "🔮 ADHD Level Prediction":
                     }
                     
                     # Add all question responses
-                    if question_columns and answers:
-                        for q_col in question_columns:
-                            if q_col in answers:
-                                # Get the response value from mapping
-                                response = answers[q_col]
-                                input_data[q_col] = encoders['response_mapping'][response]
+                    if question_columns:
+                        for idx, q_col in enumerate(question_columns):
+                            response = answers.get(idx, "Sometimes")
+                            input_data[q_col] = encoders['response_mapping'].get(response, 2)
                     
                     # Create feature array in correct order
                     feature_columns = ['Gender', 'Age'] + question_columns
@@ -486,13 +485,12 @@ elif page == "🔮 ADHD Level Prediction":
                     
                     ad_score = sum(int(input_data[q]) for q in ad_questions if q in input_data)
                     hd_score = sum(int(input_data[q]) for q in hd_questions if q in input_data)
-                    total_score = ad_score + hd_score
                     
                     # Show results
                     st.success("✅ Prediction Complete!")
                     
                     # Display results in metrics
-                    score_col1, score_col2, score_col3, score_col4, score_col5, score_col6 = st.columns(6)
+                    score_col1, score_col2, score_col3, score_col4, score_col5 = st.columns(5)
                     
                     with score_col1:
                         st.metric("Gender", gender)
@@ -501,10 +499,8 @@ elif page == "🔮 ADHD Level Prediction":
                     with score_col3:
                         st.metric("Predicted ADHD Level", prediction_label)
                     with score_col4:
-                        st.metric("Total ADHD Score", total_score)
-                    with score_col5:
                         st.metric("AD Score", ad_score)
-                    with score_col6:
+                    with score_col5:
                         st.metric("HD Score", hd_score)
                     
                     st.markdown("---")
@@ -512,7 +508,6 @@ elif page == "🔮 ADHD Level Prediction":
                     st.info(f"""
                     **Your Predicted ADHD Level:** {prediction_label}
                     
-                    **Total ADHD Score:** {total_score}
                     **Attention Deficit (AD) Score:** {ad_score}
                     **Hyperactivity/Impulsivity (HD) Score:** {hd_score}
                     
